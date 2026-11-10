@@ -1,0 +1,52 @@
+
+name: Build UniLauncher for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish UniLauncher
+        shell: pwsh
+        run: |
+          dotnet publish .\UniLauncher\UniLauncher.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output .\publish `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:PublishTrimmed=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false
+
+      - name: Add documentation
+        shell: pwsh
+        run: |
+          Copy-Item .\docs\USER_GUIDE_RU.md .\publish\ИНСТРУКЦИЯ.md
+          Copy-Item .\README.md .\publish\О_ПРОЕКТЕ.md
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UniLauncher-v1.0-RC-win-x64
+          path: publish/
+          if-no-files-found: error
+          retention-days: 14
